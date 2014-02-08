@@ -68,15 +68,13 @@ for ($i=INITPAGE; $i<=ENDPAGE; $i++) {
 	try {
 		$uri = sprintf(GOOGLEURL, $site, $i*10);
 
-		echo sprintf("Retrieving list of links from '$uri'\n");
-		echo sprintf("Pagination %d of %d... \n", $i, ENDPAGE);
+		echo sprintf("Retrieving list of links (%d of %d)... ", $i, ENDPAGE);
 		$html = str_get_dom(cget($uri));
 		$pages = $html('#res li.g .s');
+		echo "OK\n";
 
 		foreach ($pages as $k => $page) {
 			try {
-
-				echo sprintf("Parsing page %d of %d\n", $k, count($pages));
 
 				$gclink = $page('.flc>a',0);
 				if (!$gclink) $gclink = $page('a.am-dropdown-menu-item-text', 0);
@@ -84,38 +82,48 @@ for ($i=INITPAGE; $i<=ENDPAGE; $i++) {
 
 				$gclink = urldecode(str_replace('/url?q=','', $gclink->href));
 
-				$link = $page('cite', 0)->getPlainText();
+				$link = rtrim($page('cite', 0)->getPlainText(),'/');
 				if (empty($link)) throw new Exception("Empty real link");
 
-				echo "Page is '$link'.\n";
-				echo "GC link is '$gclink'.\n";
+				echo "Processing {$link}... ";
 
-				echo "Retrieving GC page...\n";
-				$raw = cget($gclink);
-				$raw = preg_replace('#.*?\<\!DOCTYPE html\>.*?\<\!#ms', '<!', $raw);
+				$link = str_replace($site, '', trim($link,'/'));
+				$folder = str_replace($site, '', $link);
+				if (strpos(basename($folder),'.')!==false) {
+					$ext = @end($t=explode('.',basename($folder)));
+					if (!in_array($ext, array('html','htm','php','asp','aspx'))) {
+						echo "non-HTML file, SKIP.\n";
+						continue;
+					}
+					$filename = basename($folder);
+					$folder = str_replace(basename($folder),'',$folder);
+				} else {
+					$filename = 'index.html';
+				}
 
-				$folder = rtrim($dir.'/'.str_replace($site.'/','',$link),'/');
-
-				$ext = @end(explode('.', basename($folder)));
-				if (!empty($ext)) $filename = $basename($folder);
-				else $filename = 'index.html';
-				$fullpath = $folder.'/'.$filename;
+				$fullfolder = str_replace('//', '/', $dir.'/'.$folder);
+				$fullpath = str_replace('//', '/', $fullfolder.'/'.$filename);
 
 				if (!is_file($fullpath)) {
-					echo "Writing file in '$fullpath'\n\n";
-					@mkdir($folder, 0777, 1);
+					$raw = cget($gclink);
+					$raw = preg_replace('#.*?\<\!DOCTYPE html\>.*?\<\!#ms', '<!', $raw);
+
+					@mkdir($fullfolder, 0777, 1);
 					file_put_contents($fullpath, $raw);
+					echo "OK\n";
+
+					sleep(TIMEOUT);
+
 				} else {
-					echo "File '$fullpath' already exists.\n\n";
+					echo "file exists, SKIP.\n";
 				}
 			} catch (Exception $e) {
-				echo "Error in page: ".$e->getMessage()."\n\n-------- PLEASE ABORT THIS FUCKING SCRIPT -----------\n\n";
+				sleep(TIMEOUT);
+				echo "\nError: ".$e->getMessage();
 			}
-
-			sleep(TIMEOUT);
 		}
 	} catch (Exception $e) {
-		echo "Error in list: ".$e->getMessage()."\n\n-------- PLEASE ABORT THIS FUCKING SCRIPT -----------\n\n";
+		echo "\nError: ".$e->getMessage();
 	}
 
 	sleep(TIMEOUT);
