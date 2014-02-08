@@ -97,7 +97,7 @@ for ($i=INITPAGE; $i<=ENDPAGE; $i++) {
 				$folder = rtrim($dir.'/'.str_replace($site.'/','',$link),'/');
 
 				$ext = @end(explode('.', basename($folder)));
-				if ($ext) $filename = $basename($folder);
+				if (!empty($ext)) $filename = $basename($folder);
 				else $filename = 'index.html';
 				$fullpath = $folder.'/'.$filename;
 
