@@ -1,7 +1,5 @@
 <?php
 
-define('VERBOSE', 1);
-
 if (!isset($argv[1])) {
 	die("Usage: php run.php yoursite.com initpage endpage timeout\n");
 }
@@ -66,11 +64,6 @@ $dir = __DIR__.'/sites/'.$site;
 echo "Creating directory $dir...\n\n";
 @mkdir($dir,0777,1);
 
-echo "Your timeout is ".TIMEOUT."sec per page\n";
-echo "Your initial page is ".INITPAGE."\n";
-echo "Your end page is ".ENDPAGE."\n\n";
-
-
 for ($i=INITPAGE; $i<=ENDPAGE; $i++) {
 	try {
 		$uri = sprintf(GOOGLEURL, $site, $i*10);
@@ -102,12 +95,18 @@ for ($i=INITPAGE; $i<=ENDPAGE; $i++) {
 				$raw = preg_replace('#.*?\<\!DOCTYPE html\>.*?\<\!#ms', '<!', $raw);
 
 				$folder = rtrim($dir.'/'.str_replace($site.'/','',$link),'/');
-				if (!is_file($folder.'/index.htm')) {
-					echo "Writing file in '$folder'\n\n";
+
+				$ext = @end(explode('.', basename($folder)));
+				if ($ext) $filename = $basename($folder);
+				else $filename = 'index.html';
+				$fullpath = $folder.'/'.$filename;
+
+				if (!is_file($fullpath)) {
+					echo "Writing file in '$fullpath'\n\n";
 					@mkdir($folder, 0777, 1);
-					file_put_contents($folder.'/index.htm', $raw);
+					file_put_contents($fullpath, $raw);
 				} else {
-					echo "File index.htm already exists in '$folder'\n\n";
+					echo "File '$fullpath' already exists.\n\n";
 				}
 			} catch (Exception $e) {
 				echo "Error in page: ".$e->getMessage()."\n\n-------- PLEASE ABORT THIS FUCKING SCRIPT -----------\n\n";
