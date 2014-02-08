@@ -24,22 +24,22 @@ function cget($url, $headers=null) {
 	//curl_setopt($ch, CURLOPT_PROXYTYPE, 'HTTP');
 
 	$response = curl_exec($ch);
-	if (VERBOSE) {
-		echo "\n\n========== RESPONSE ==============\n";
-		echo $response;
-		echo "\n========== ENDRESPONSE ==============\n\n";
-	}
 
 	if (curl_errno($ch)) {
 		$error = curl_error($ch);
 		curl_close($ch);
-		echo "\n\n$response\n\n";
+		echo "\n\n========== RESPONSE ==============\n";
+		echo $response;
+		echo "\n========== ENDRESPONSE ==============\n\n";
 		throw new Exception($error);
 	}
 
 	$info = curl_getinfo($ch);
 	if ($info['http_code']>=400) {
 		curl_close($ch);
+		echo "\n\n========== RESPONSE ==============\n";
+		echo $response;
+		echo "\n========== ENDRESPONSE ==============\n\n";
 		throw new Exception("Status code is {{$info['http_code']}}");
 	}
 
