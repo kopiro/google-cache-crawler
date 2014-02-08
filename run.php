@@ -6,15 +6,12 @@ if (!isset($argv[1])) {
 
 function cget($url, $headers=null) {
 	$ch = curl_init($url);
-
 	curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla");
 	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 	curl_setopt($ch, CURLOPT_AUTOREFERER, true);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-	curl_setopt($ch, CURLOPT_HTTPHEADER, [
-		'Referer: http://www.google.it/'
-		]);
+	//curl_setopt($ch, CURLOPT_HTTPHEADER, array('Referer: http://www.google.it/'));
 
 	curl_setopt($ch, CURLOPT_TIMEOUT, 20);
 
@@ -26,9 +23,9 @@ function cget($url, $headers=null) {
 	if (curl_errno($ch)) {
 		$error = curl_error($ch);
 		curl_close($ch);
-		echo "\n\n========== RESPONSE ==============\n";
+		echo "\n\n========== ERROR ==============\n";
 		echo $response;
-		echo "\n========== ENDRESPONSE ==============\n\n";
+		echo "\n===============================\n\n";
 		throw new Exception($error);
 	}
 
@@ -37,13 +34,13 @@ function cget($url, $headers=null) {
 		curl_close($ch);
 		echo "\n\n========== RESPONSE ==============\n";
 		echo $response;
-		echo "\n========== ENDRESPONSE ==============\n\n";
+		echo "\n===============================\n\n";
 		throw new Exception("Status code is {{$info['http_code']}}");
 	}
 
 	if (empty($response)) {
 		curl_close($ch);
-		throw new Exception("Empty response from server", 1);
+		throw new Exception("Empty response");
 	}
 
 	curl_close($ch);
@@ -118,13 +115,11 @@ for ($i=INITPAGE; $i<=ENDPAGE; $i++) {
 					echo "file exists, SKIP.\n";
 				}
 			} catch (Exception $e) {
+				echo "\nError: ".$e->getMessage()."\n\n";
 				sleep(TIMEOUT);
-				echo "\nError: ".$e->getMessage();
 			}
 		}
 	} catch (Exception $e) {
-		echo "\nError: ".$e->getMessage();
+		echo "\nError (in-list): ".$e->getMessage()."\n\n";
 	}
-
-	sleep(TIMEOUT);
 }
