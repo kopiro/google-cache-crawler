@@ -42,7 +42,6 @@ function cget($url, $headers=null) {
 }
 
 function gget($uri) {
-	echo "\n=====================\n".$uri."\n=====================\n\n";
 	try {
 		$raw = cget($uri);
 		return preg_replace('#.*?\<\!DOCTYPE html\>.*?\<\!#ms', '<!', $raw);
