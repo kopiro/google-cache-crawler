@@ -6,10 +6,12 @@ if (!isset($argv[1])) {
 
 function cget($url, $headers=null) {
 	$ch = curl_init($url);
-	curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla");
+	curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/5.0");
 	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 	curl_setopt($ch, CURLOPT_AUTOREFERER, true);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($ch, CURLOPT_COOKIEJAR, true);
+	curl_setopt($ch, CURLOPT_COOKIEFILE, '/tmp/gcc_cookie.txt');
 
 	//curl_setopt($ch, CURLOPT_HTTPHEADER, array('Referer: http://www.google.it/'));
 
@@ -73,27 +75,28 @@ for ($i=INITPAGE; $i<=ENDPAGE; $i++) {
 		foreach ($pages as $k => $page) {
 			try {
 
-				$gclink = $page('.flc>a',0);
-				if (!$gclink) $gclink = $page('a.am-dropdown-menu-item-text', 0);
-				if (!$gclink) throw new Exception("Empty Google Cache link");
+				$gclink = $page('.flc>a', 0);
+				$gclink = urldecode(str_replace('/url?q=', '', $gclink->href));
 
-				$gclink = urldecode(str_replace('/url?q=','', $gclink->href));
-
-				$link = rtrim($page('cite', 0)->getPlainText(),'/');
+				$_uri = explode('?', $gclink); array_shift($_uri);
+				parse_str(implode('',$_uri), $data);
+				preg_match("/cache:[^:]+:([^\+]+)\+/", $data['q'], $matches);
+				$link = end($matches);
 				if (empty($link)) throw new Exception("Empty real link");
 
-				echo "Processing {$link}... ";
+				echo "Processing '{$link}'... ";
 
-				$link = str_replace($site, '', trim($link,'/'));
-				$folder = str_replace($site, '', $link);
-				if (strpos(basename($folder),'.')!==false) {
-					$ext = @end($t=explode('.',basename($folder)));
+				$folder = preg_replace("/https?:\/\/(www\.)?$site\/?/", '', $link);
+				$basefolder = basename($folder);
+				if (strpos($basefolder,'.')!==false) {
+					$t = explode('.', $basefolder);
+					$ext = end($t);
 					if (!in_array($ext, array('html','htm','php','asp','aspx'))) {
 						echo "non-HTML file, SKIP.\n";
 						continue;
 					}
-					$filename = basename($folder);
-					$folder = str_replace(basename($folder),'',$folder);
+					$filename = $basefolder;
+					$folder = str_replace($basefolder,'',$folder);
 				} else {
 					$filename = 'index.html';
 				}
