@@ -42,14 +42,14 @@ function cget($url, $headers=null) {
 }
 
 function gget($uri) {
-	echo "\n\n=====================\n".$uri."\n================\n\n";
+	echo "\n=====================\n".$uri."\n=====================\n\n";
 	try {
 		$raw = cget($uri);
 		return preg_replace('#.*?\<\!DOCTYPE html\>.*?\<\!#ms', '<!', $raw);
 	} catch (Exception $e) {
 		if ($e->getCode()==503) {
 			preg_match("/src\=\"\/sorry\/image\?id\=([0-9]+)/", $e->getMessage(), $cid); $cid = end($cid);
-			$image = "http://ipv4.google.com/sorry/image?id={$cid}";
+			$img = "http://ipv4.google.com/sorry/image?id={$cid}";
 			$captcha = scanf("Please solve this captcha ($img)");
 			return gget("http://ipv4.google.com/sorry/CaptchaRedirect?continue=".urlencode($uri)."&id=".$cid."&captcha=".$captcha."&submit=Submit");
 		}
