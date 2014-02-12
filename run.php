@@ -1,13 +1,12 @@
 <?php
 
 if (!isset($argv[1])) {
-	die("Usage: php run.php yoursite.com initpage endpage timeout\n");
+	die("Usage: php run.php yoursite.com [timeout] [initpage] [endpage]\n");
 }
 
 function scanf($msg){
-	fwrite(STDOUT, "$msg: ");
-	$varin = trim(fgets(STDIN));
-	return $varin;
+	echo $msg;
+	return trim(fgets(STDIN));
 }
 
 function cget($url, $headers=null) {
@@ -49,19 +48,20 @@ function gget($uri) {
 		if ($e->getCode()==503) {
 			preg_match("/src\=\"\/sorry\/image\?id\=([0-9]+)/", $e->getMessage(), $cid); $cid = end($cid);
 			$img = "http://ipv4.google.com/sorry/image?id={$cid}";
-			$captcha = scanf("Please solve this captcha ($img)");
+			$captcha = scanf("Abort this script or solve the captcha ($img): ");
 			return gget("http://ipv4.google.com/sorry/CaptchaRedirect?continue=".urlencode($uri)."&id=".$cid."&captcha=".$captcha."&submit=Submit");
+		} else {
+			return null;
 		}
 	}
 }
 
 require 'ganon.php';
 
-
 define('GOOGLEURL', "http://www.google.it/search?q=site:%s&start=%d&gbv=1");
-define('TIMEOUT', isset($argv[4])?$argv[4]:10);
-define('INITPAGE', isset($argv[2])?$argv[2]:0);
-define('ENDPAGE', isset($argv[3])?$argv[3]:20);
+define('TIMEOUT', isset($argv[2])?$argv[2]:0);
+define('INITPAGE', isset($argv[3])?$argv[3]:0);
+define('ENDPAGE', isset($argv[4])?$argv[4]:20);
 
 $site = $argv[1];
 echo "\nYour site is $site\n";
@@ -72,52 +72,58 @@ echo "Creating directory $dir...\n\n";
 for ($i=INITPAGE; $i<=ENDPAGE; $i++) {
 
 	echo sprintf("Retrieving list of links (%d of %d)... ", $i, ENDPAGE);
-
 	$uri = sprintf(GOOGLEURL, $site, $i*10);
-	$html = str_get_dom(gget($uri));
-	$pages = $html('#res li.g .s');
-	echo "OK\n";
+	$links = gget($uri);
+	if (!$links) {
+		echo "ERROR\n";
+	} else {
+		$html = str_get_dom($links);
+		$pages = $html('#res li.g .s');
+		echo "OK\n";
 
-	foreach ($pages as $k => $page) {
-		$gclink = $page('.flc>a', 0);
-		$gclink = urldecode(str_replace('/url?q=', '', $gclink->href));
+		foreach ($pages as $k => $page) {
+			$gclink = $page('.flc>a', 0);
+			$gclink = urldecode(str_replace('/url?q=', '', $gclink->href));
 
-		$_uri = explode('?', $gclink); array_shift($_uri);
-		parse_str(implode('',$_uri), $data);
-		preg_match("/cache:[^:]+:([^\+]+)\+/", $data['q'], $matches);
-		$link = end($matches);
-		if (empty($link)) throw new Exception("Empty real link");
+			$_uri = explode('?', $gclink); array_shift($_uri);
+			parse_str(implode('',$_uri), $data);
+			preg_match("/cache:[^:]+:([^\+]+)\+/", $data['q'], $matches);
+			$link = end($matches);
+			if (empty($link)) throw new Exception("Empty real link");
 
-		echo "Processing '{$link}'... ";
+			echo "Processing '{$link}'... ";
 
-		$folder = preg_replace("/https?:\/\/(www\.)?$site\/?/", '', $link);
-		$basefolder = basename($folder);
-		if (strpos($basefolder,'.')!==false) {
-			$t = explode('.', $basefolder);
-			$ext = end($t);
-			if (!in_array($ext, array('html','htm','php','asp','aspx'))) {
-				echo "non-HTML file, SKIP.\n";
-				continue;
+			$folder = preg_replace("/https?:\/\/(www\.)?$site\/?/", '', $link);
+			$basefolder = basename($folder);
+			if (strpos($basefolder,'.')!==false) {
+				$t = explode('.', $basefolder);
+				$ext = end($t);
+				if (!in_array($ext, array('html','htm','php','asp','aspx'))) {
+					echo "non-HTML file, SKIP.\n";
+					continue;
+				}
+				$filename = $basefolder;
+				$folder = str_replace($basefolder,'',$folder);
+			} else {
+				$filename = 'index.html';
 			}
-			$filename = $basefolder;
-			$folder = str_replace($basefolder,'',$folder);
-		} else {
-			$filename = 'index.html';
-		}
 
-		$fullfolder = str_replace('//', '/', $dir.'/'.$folder);
-		$fullpath = str_replace('//', '/', $fullfolder.'/'.$filename);
+			$fullfolder = str_replace('//', '/', $dir.'/'.$folder);
+			$fullpath = str_replace('//', '/', $fullfolder.'/'.$filename);
 
-		if (!is_file($fullpath)) {
-			$raw = gget($gclink);
-			if ($raw) {
-				echo "OK\n";
-				@mkdir($fullfolder, 0777, 1);
-				file_put_contents($fullpath, $raw);
-				sleep(TIMEOUT);
+			if (!is_file($fullpath)) {
+				$raw = gget($gclink);
+				if (!$raw) {
+					echo "ERROR\n";
+				} else {
+					echo "OK\n";
+					@mkdir($fullfolder, 0777, 1);
+					file_put_contents($fullpath, $raw);
+					sleep(TIMEOUT);
+				}
+			} else {
+				echo "file exists, SKIP.\n";
 			}
-		} else {
-			echo "file exists, SKIP.\n";
 		}
 	}
 }
