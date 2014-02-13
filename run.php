@@ -93,7 +93,7 @@ for ($i=INITPAGE; $i<=ENDPAGE; $i++) {
 
 			echo "Processing '{$link}'... ";
 
-			$folder = preg_replace("/https?:\/\/(www\.)?$site\/?/", '', $link);
+			$folder = preg_replace("/https?:\/\/(www\.)?".str_replace("/","\/",$site)."\/?/", '', $link);
 			$basefolder = basename($folder);
 			if (strpos($basefolder,'.')!==false) {
 				$t = explode('.', $basefolder);
